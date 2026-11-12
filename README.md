@@ -4,6 +4,22 @@ Aplicación para leer, editar y programar de forma segura walkies Baofeng, Radte
 Hecha en Python, solo con la biblioteca estándar: no necesita instalar nada (si `pyserial` está
 instalado lo usa; si no, accede al puerto serie directamente con la API de Windows).
 
+## Cable de programación
+
+Para conectar la radio al PC hace falta un cable USB con conector Kenwood de 2 clavijas (3,5 mm + 2,5 mm):
+
+👉 **[Cable de programación USB 2 pines para Baofeng](https://link.amazon/B00vVvpnN)** (Amazon)
+
+Compatible con: Baofeng UV-5R, UV-5RA, UV-5RE, UV-5R EX, UV-5RX3, BF-888S, BF-88E, Quansheng UV-K5,
+Retevis RT24, RT27, RT22, RT5R, RT622, RT3S, H777, RA79, GA-2S, y radios Kenwood y Wouxun con el mismo conector.
+Funciona en Windows XP/7/8/10/11 (no en Mac).
+
+Al conectarlo aparece como un puerto COM en Windows (p.ej. COM6); si no aparece, instala el controlador del chip
+USB-serie del cable. Enciende la radio con el cable bien encajado hasta el fondo y el volumen a medio recorrido.
+
+<sub>Enlace de afiliado: como afiliado de Amazon, obtengo ingresos por las compras adscritas que cumplen los
+requisitos aplicables. El precio para ti es el mismo.</sub>
+
 ## Uso
 
 ```
