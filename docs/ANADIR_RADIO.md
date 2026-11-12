@@ -82,7 +82,7 @@ Particularidades conocidas de otras familias (referencia: drivers de CHIRP):
 | UV-17Pro / UV-5RM / K5-Plus | 115200 | ASCII `PROGRAMBFNORMALU`, `PROGRAMCOLORPROU`… | Bloques cifrados con XOR, varias zonas de memoria |
 | UV-17 / UV-13Pro | 57600 | `PASSSTA` | |
 | Radtel RT-470/495, A36plus (JC8810) | 57600 | `PROGRAMJC81U` | |
-| Quansheng / Baofeng UV-K5 | 38400 | Paquetes con CRC y ofuscación XOR | Firmware abierto: permite control en vivo |
+| Quansheng UV-K5 (**implementado**: `protocols/quansheng_k5.py`) | 38400 | Paquetes con CRC16 y ofuscación XOR | Firmwares alternativos cambian el mapa de ajustes; algunos permiten control en vivo |
 | DMR (DM-32UV, DM-1701, RT-3S) | 115200 | Propio | Requiere ampliar el modelo: contactos, grupos, zonas, IDs |
 
 Para el emulador de pruebas, añadir un `testing/fake_<protocolo>.py` que implemente la máquina de

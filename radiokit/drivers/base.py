@@ -58,6 +58,9 @@ class Protocol(ABC):
     def close(self):
         """Salir del modo programacion si el protocolo lo requiere."""
 
+    def finish_write(self):
+        """Se llama tras escribir todos los bloques (p.ej. reiniciar la radio para que cargue los cambios)."""
+
 
 class RadioDriver(ABC):
     ID = ""                 # identificador estable "fabricante.modelo"
@@ -159,7 +162,8 @@ class RadioDriver(ABC):
     # ---- seguridad -----------------------------------------------------------
     @classmethod
     def is_writable(cls, addr: int, length: int) -> bool:
-        return any(s <= addr and addr + length <= e for s, e, _ in cls.WRITABLE)
+        """Todos los bytes [addr, addr+length) estan dentro de alguna zona escribible."""
+        return all(any(s <= a < e for s, e, _ in cls.WRITABLE) for a in range(addr, addr + length))
 
     @classmethod
     def write_block_reason(cls, image: MemoryImage) -> str | None:

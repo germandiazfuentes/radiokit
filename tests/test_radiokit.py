@@ -290,5 +290,71 @@ class TestRT4D(_NoSleep):
         self.assertIsNotNone(drv.write_block_reason(img))
 
 
+class TestUVK5(_NoSleep):
+    def eeprom(self):
+        from radiokit.drivers.quansheng_uvk5 import QuanshengUVK5 as K
+        mem = bytearray(b"\xff" * 0x2000)
+        mem[0x0D60:0x0D60 + 200] = b"\x0f" * 200            # todos libres
+        mem[0x0F50:0x0F50 + 200 * 16] = b"\x00" * (200 * 16)
+        mem[0x1E00:0x2000] = bytes(range(256)) * 2           # "calibracion"
+        mem[0x0F40:0x0F47] = bytes([0, 0, 0, 0, 0, 0, 0])
+        chans = [Channel(number=1, empty=False, name="PMR 7-7", rx_freq=446_081_250, tx_freq=446_081_250,
+                         tx_tone="85.4", rx_tone="85.4", power="Low", bandwidth="Narrow"),
+                 Channel(number=2, empty=False, name="RPT", rx_freq=145_650_000, tx_freq=145_050_000,
+                         tx_tone="D023N", rx_tone="D754I", power="High", bandwidth="Wide"),
+                 Channel(number=200, empty=False, name="MAR16", rx_freq=156_800_000, tx_freq=None, scan=False)]
+        for c in chans:
+            K.encode_channel(mem, c)
+        return K, mem, chans
+
+    def test_crc_reference_vector(self):
+        from radiokit.protocols.quansheng_k5 import crc16_xmodem
+        self.assertEqual(crc16_xmodem(b"123456789"), 0x31C3)
+
+    def test_encode_decode(self):
+        K, mem, chans = self.eeprom()
+        for c in chans:
+            d = K.decode_channel(mem, c.number)
+            self.assertEqual((d.name, d.rx_freq, d.tx_freq, d.tx_tone, d.rx_tone, d.power, d.bandwidth, d.scan),
+                             (c.name, c.rx_freq, c.tx_freq, c.tx_tone, c.rx_tone, c.power, c.bandwidth, c.scan))
+        self.assertTrue(K.decode_channel(mem, 3).empty)
+        K.encode_channel(mem, Channel(number=2, empty=True))
+        self.assertTrue(K.decode_channel(mem, 2).empty)
+
+    def test_read_and_write_blocked_by_firmware(self):
+        from radiokit.testing.fake_k5 import FakeUVK5
+        K, mem, _ = self.eeprom()
+        for fw, expect in (("k5_2.01.26", "sin verificar"), ("EGZUMER v0.22", "no es el original")):
+            fake = FakeUVK5(bytes(mem), fw)
+            drv, img, _ = self.service(fake).read("FAKE")
+            self.assertIs(drv, K)
+            self.assertEqual(bytes(img.data), bytes(mem))
+            self.assertEqual(img.meta["firmware"], fw)
+            self.assertIn(expect, K.write_block_reason(img))
+
+    def test_write_flow_when_verified(self):
+        from radiokit.testing.fake_k5 import FakeUVK5
+        K, mem, _ = self.eeprom()
+        fake = FakeUVK5(bytes(mem))
+        svc = self.service(fake)
+        _, base, _ = svc.read("FAKE")
+        tgt = base.copy()
+        c = K.decode_channel(tgt.data, 1)
+        c.name = "MONTANA"
+        K.encode_channel(tgt.data, c)
+        with mock.patch.object(K, "HARDWARE_VERIFIED", True):
+            plan = svc.plan(base, tgt)
+            self.assertEqual(plan.blocks, [0x0F00])
+            res = svc.write("FAKE", base, tgt)
+        self.assertTrue(res.verified)
+        self.assertEqual(fake.writes, [0x0F00])
+        self.assertEqual(fake.resets, 1)                     # reinicio tras escribir
+        self.assertEqual(bytes(fake.mem[0x1E00:]), bytes(mem[0x1E00:]))   # calibracion intacta
+        tgt2 = base.copy()
+        tgt2.data[0x1E10] ^= 0xFF
+        with self.assertRaises(ProtectedRegionError):
+            svc.plan(base, tgt2)
+
+
 if __name__ == "__main__":
     unittest.main()

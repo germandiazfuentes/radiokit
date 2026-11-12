@@ -148,6 +148,7 @@ class RadioService:
             for i, b in enumerate(plan.blocks):
                 proto.write_block(b, bytes(target.data[b:b + bs]))
                 progress(i + 1, len(plan.blocks), "Escribiendo 0x%04X" % b)
+            proto.finish_write()
             proto.close()
         self.log("Escritura completada. Verificando...")
 
