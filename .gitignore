@@ -1,0 +1,12 @@
+# Copias de memoria de radios personales (pueden contener canales y ajustes privados)
+backups/
+
+# Codigo de terceros clonado solo como referencia (CHIRP, rt4d-cps sin licencia)
+vendor/
+
+# Entorno local
+continua Baofeng.bat
+.venv/
+__pycache__/
+*.pyc
+*.img

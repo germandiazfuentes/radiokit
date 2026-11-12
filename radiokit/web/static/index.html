@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>radiokit</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">radio<b>kit</b></div>
+  <div class="conn">
+    <label>Puerto
+      <select id="port"></select>
+    </label>
+    <button id="btnPorts" class="ghost" title="Actualizar puertos">↻</button>
+    <label>Modelo
+      <select id="model"><option value="">Autodetectar</option></select>
+    </label>
+    <button id="btnRead" class="primary">Leer radio</button>
+  </div>
+  <div id="source" class="source">Sin radio abierta</div>
+</header>
+
+<nav class="tabs">
+  <button data-tab="channels" class="active">Canales</button>
+  <button data-tab="settings">Ajustes</button>
+  <button data-tab="memory">Memoria</button>
+  <button data-tab="backups">Copias</button>
+  <button data-tab="radios">Modelos</button>
+</nav>
+
+<main>
+  <section id="tab-channels" class="tab active">
+    <div class="toolbar">
+      <div id="radioInfo" class="muted"></div>
+      <label class="check"><input type="checkbox" id="showEmpty"> Mostrar canales vacios</label>
+      <input id="filter" type="search" placeholder="Filtrar por nombre o frecuencia">
+    </div>
+    <div class="tablewrap">
+      <table id="chTable">
+        <thead><tr>
+          <th>Canal</th><th>Nombre</th><th>RX (MHz)</th><th>TX</th><th>Tono TX</th><th>Tono RX</th>
+          <th>Potencia</th><th>Ancho</th><th>Escaneo</th><th>PMR</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p id="emptyMsg" class="empty">Lee una radio o abre una copia para empezar.</p>
+  </section>
+
+  <section id="tab-settings" class="tab">
+    <div class="toolbar">
+      <label class="check"><input type="checkbox" id="showAdvanced"> Mostrar ajustes ocultos/avanzados</label>
+    </div>
+    <div id="settingsGrid" class="cards"></div>
+  </section>
+
+  <section id="tab-memory" class="tab">
+    <p class="muted">Mapa de memoria del modelo. La aplicacion solo escribe en zonas marcadas como escribibles;
+      calibracion y firmware estan protegidos.</p>
+    <div class="tablewrap"><table id="memTable"><thead><tr>
+      <th>Desde</th><th>Hasta</th><th>Contenido</th><th>Tipo</th><th>Escribible</th></tr></thead><tbody></tbody></table></div>
+    <div id="infoBox" class="infobox"></div>
+  </section>
+
+  <section id="tab-backups" class="tab">
+    <p class="muted">Copias guardadas en la carpeta <code>backups</code>. Cada lectura y cada escritura guarda copia automaticamente.</p>
+    <div class="tablewrap"><table id="bkTable"><thead><tr>
+      <th>Fecha</th><th>Archivo</th><th>Modelo</th><th></th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="tab-radios" class="tab">
+    <p class="muted">Modelos soportados. Para anadir uno nuevo, ver <code>docs/ANADIR_RADIO.md</code>.</p>
+    <div id="driverList" class="cards"></div>
+  </section>
+</main>
+
+<footer id="changes" class="changes hidden">
+  <div id="changesText"></div>
+  <div class="actions">
+    <a id="btnCsv" class="ghost button" href="/api/export.csv" download="canales.csv">Exportar CSV</a>
+    <button id="btnRevert" class="ghost">Deshacer cambios</button>
+    <button id="btnWrite" class="danger">Revisar y escribir en la radio…</button>
+  </div>
+</footer>
+
+<dialog id="dlgChannel">
+  <form method="dialog" id="chForm">
+    <h2 id="chTitle">Canal</h2>
+    <div class="grid2">
+      <label>Nombre <input name="chname" autocomplete="off"></label>
+      <label>RX (MHz) <input name="rx" inputmode="decimal" required></label>
+      <label>Transmision
+        <select name="txmode">
+          <option value="same">Igual que RX (simplex)</option>
+          <option value="+">Desplazamiento + (repetidor)</option>
+          <option value="-">Desplazamiento − (repetidor)</option>
+          <option value="split">Otra frecuencia</option>
+          <option value="off">Solo escucha (TX bloqueado)</option>
+        </select>
+      </label>
+      <label id="txLabel">TX / desplaz. (MHz) <input name="tx" inputmode="decimal"></label>
+      <label>Subtono TX <select name="tx_tone"></select></label>
+      <label>Subtono RX <select name="rx_tone"></select></label>
+      <label>Potencia <select name="power"></select></label>
+      <label>Ancho de banda <select name="bandwidth"><option>Narrow</option><option>Wide</option></select></label>
+      <label>PTT-ID <select name="pttid"></select></label>
+      <div class="checks">
+        <label class="check"><input type="checkbox" name="scan"> Incluir en escaneo</label>
+        <label class="check"><input type="checkbox" name="bcl"> Bloqueo si ocupado</label>
+      </div>
+    </div>
+    <div class="hint" id="chHint"></div>
+    <ul id="chErrors" class="errors"></ul>
+    <div class="dlgbtns">
+      <button value="delete" id="chDelete" class="danger ghost">Borrar canal</button>
+      <span class="spacer"></span>
+      <button value="cancel" class="ghost" formnovalidate>Cancelar</button>
+      <button value="save" class="primary" id="chSave">Guardar en el borrador</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgWrite">
+  <form method="dialog">
+    <h2>Escribir en la radio</h2>
+    <div id="planBox"></div>
+    <ul class="safety">
+      <li>Antes de escribir se lee la radio y se guarda una copia completa.</li>
+      <li>Si la radio ha cambiado en lo que se va a escribir, se cancela sin tocar nada.</li>
+      <li>Solo se escriben los bloques modificados; calibracion y firmware estan protegidos.</li>
+      <li>Al terminar se relee la radio y se verifica cada bloque.</li>
+    </ul>
+    <label class="check"><input type="checkbox" id="confirmWrite"> Entiendo que se va a modificar la radio conectada en <b id="writePort"></b></label>
+    <div class="dlgbtns">
+      <button value="cancel" class="ghost">Cancelar</button>
+      <span class="spacer"></span>
+      <button value="dry" class="ghost" id="btnDry">Ensayo (sin escribir)</button>
+      <button value="write" class="danger" id="btnDoWrite" disabled>Escribir</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgJob">
+  <h2 id="jobTitle">Trabajando…</h2>
+  <div class="bar"><div id="jobBar"></div></div>
+  <div id="jobMsg" class="muted"></div>
+  <pre id="jobLog"></pre>
+  <div class="dlgbtns"><span class="spacer"></span><button id="jobClose" class="primary" disabled>Cerrar</button></div>
+</dialog>
+
+<div id="toast" class="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
