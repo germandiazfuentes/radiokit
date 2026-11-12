@@ -81,24 +81,27 @@ Horarios vigentes: web de Salvamento Marítimo.
 | Llamada FM 70 cm | 433.500 MHz |
 | Repetidores y REMER | Dependen de la zona; consultar la URE/REMER de la provincia |
 
-## 5. Propuesta de plan de canales (pendiente de aprobar)
+## 5. Plan de canales para la UV-S Plus
 
-| Canal | Nombre | RX / TX | Tono | Notas |
-|---|---|---|---|---|
 Pensado para costa catalana, Pirineo catalán, Andorra y Ordesa (adaptar los canales costeros a cada zona).
 Disponible como copia lista para cargar en una UV-S Plus: `tests/data/uv-s-plus-reference.bin`.
 
-| 1–16 | PMR 01–16 | PMR446 | — | Pasar a **Narrow** |
-| 20 | SOSMONT | 146.175 | TX 123.0 Hz | Sustituye WX1. Ordesa/Pirineo aragonés. Uso solo en peligro si no tienes licencia |
-| 21 | PMR 7-7 | 446.08125 | 85.4 Hz | Duplicado accesible del 77 |
-| 22 | MAR16 | 156.800 | — | TX inhibido (solo escucha) |
-| 23 | MAR10 BCN | 156.500 | — | Salvamento Marítimo Barcelona, TX inhibido |
-| 24 | MAR13 TGN | 156.650 | — | Salvamento Marítimo Tarragona, TX inhibido |
-| 25 | MAR74 | 156.725 | — | TX inhibido |
-| 26 | MAR67 | 156.375 | — | TX inhibido |
-| 27 | COST60 | 160.625 | — | Costera Barcelona, TX inhibido |
-| 28 | COST23 | 161.750 | — | Costeras Begur / Tarragona, TX inhibido |
-| 29 | MAR09 | 156.450 | — | Puertos deportivos, TX inhibido |
-| 112 | EMERGEN | 146.175 | **añadir TX 123.0 Hz** | Hoy no tiene subtono: los refugios no lo oirían |
+| Canal | Nombre | RX / TX (MHz) | Subtono | Notas |
+|---|---|---|---|---|
+| 1–16 | PMR 01–16 | 446.00625–446.19375 | — | PMR446 en **Narrow** |
+| 20 | SOSMONT | 146.175 | TX 123.0 Hz | Ordesa / Pirineo aragonés. Uso solo en peligro si no tienes licencia |
+| 21 | PMR 7-7 | 446.08125 | 85.4 Hz | Canal 7-7 de montaña, junto a los de emergencia |
+| 22 | MAR16 | 156.800 | — | Socorro marítimo, solo escucha |
+| 23 | MAR10 | 156.500 | — | Salvamento Marítimo Barcelona, solo escucha |
+| 24 | MAR13 | 156.650 | — | Salvamento Marítimo Tarragona, solo escucha |
+| 25 | MAR74 | 156.725 | — | Solo escucha |
+| 26 | MAR67 | 156.375 | — | Solo escucha |
+| 27 | COST60 | 160.625 | — | Estación costera de Barcelona, solo escucha |
+| 28 | COST23 | 161.750 | — | Estaciones costeras de Begur / Tarragona, solo escucha |
+| 29 | MAR09 | 156.450 | — | Puertos deportivos, solo escucha |
+| 77 | PMR 7-7 | 446.08125 | 85.4 Hz | Canal 7-7 (posición original) |
+| 112 | EMERGEN | 146.175 | TX 123.0 Hz | SOS-Montaña en Wide |
+
+Los canales marítimos tienen la transmisión bloqueada y están fuera del escaneo.
 
 Fuentes: fam.es (SOS-Montaña), montanasegura.com, travesiapirenaica.com (#Canal77PMR), AEMET "Información para zonas costeras", ANAVE 2022.
