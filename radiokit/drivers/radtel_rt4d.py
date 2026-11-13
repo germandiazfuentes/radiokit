@@ -98,9 +98,10 @@ class RadtelRT4D(RadioDriver):
     MEM_SIZE = 4 * 1024 * 1024
     WRITE_BLOCK = 0x1000               # sector de flash completo
     # Ajustes (verificado con escritura real) y canales (sectores de 4 KB). Zonas/contactos: pendientes.
-    WRITABLE = ((0x2000, 0x3000, "Ajustes de menu"), (0x4000, 0x10000, "Canales"))
-    # Lecturas de comprobacion antes/despues de escribir (incluye la copia de reserva de canales 0x10000)
-    WRITE_CHECK_RANGES = ((0x0000, 0x1C000),)
+    WRITABLE = ((0x2000, 0x3000, "Ajustes de menu"), (0x4000, 0x10000, "Canales"),
+                (0x1C000, 0x3C000, "Zonas"))
+    # Lecturas de comprobacion antes/despues de escribir: ajustes, canales y su copia, zonas 1-8 y su copia
+    WRITE_CHECK_RANGES = ((0x0000, 0x1D000), (0x3C000, 0x3D000))
     POST_WRITE_DELAY = 8
     SETTINGS = RT4D_SETTINGS
     REGIONS = ((0x000000, 0x400000, "Flash SPI completa (codeplug, contactos, calibracion...)", "unknown"),)
@@ -198,6 +199,37 @@ class RadtelRT4D(RadioDriver):
             if s <= a < e:
                 return "%s +0x%04X" % (name, a - s)
         return ""
+
+    # Zonas: 256 registros de 512 B en 0x1C000 (copia de reserva en 0x3C000, la sincroniza la radio).
+    #   0x00 y 0x01 = numero de canales (ambos iguales en todos los registros reales), 0x02-03 = FF,
+    #   0x04-0x13 nombre (FF = relleno), 0x14+ lista de canales u16 LE contando desde 0 (max 250).
+    ZONE_BASE, ZONE_SIZE, ZONE_MAX_CH = 0x1C000, 512, 250
+
+    @classmethod
+    def decode_zone(cls, mem, z: int) -> dict:
+        o = cls.ZONE_BASE + (z - 1) * cls.ZONE_SIZE
+        r = bytes(mem[o:o + cls.ZONE_SIZE])
+        n = r[0] if r[0] != 0xFF else 0
+        chans = [int.from_bytes(r[0x14 + 2 * i:0x16 + 2 * i], "little") + 1 for i in range(min(n, cls.ZONE_MAX_CH))]
+        return {"number": z, "name": r[4:0x14].replace(b"\xff", b"").decode("gbk", "replace").strip("\x00 "),
+                "channels": chans}
+
+    @classmethod
+    def encode_zone(cls, mem, z: int, name: str, channels: list[int]):
+        if not 1 <= z <= 256:
+            raise ValueError("Zona fuera de rango 1-256")
+        if len(channels) > cls.ZONE_MAX_CH:
+            raise ValueError("Maximo %d canales por zona" % cls.ZONE_MAX_CH)
+        for c in channels:
+            if not 1 <= c <= 1024 or cls.decode_channel(mem, c).empty:
+                raise ValueError("Zona %d: el canal %d no existe" % (z, c))
+        o = cls.ZONE_BASE + (z - 1) * cls.ZONE_SIZE
+        r = bytearray(b"\xff" * cls.ZONE_SIZE)
+        r[0] = r[1] = len(channels)
+        r[4:0x14] = name.encode("gbk")[:16].ljust(16, b"\xff")
+        for i, c in enumerate(channels):
+            r[0x14 + 2 * i:0x16 + 2 * i] = (c - 1).to_bytes(2, "little")
+        mem[o:o + cls.ZONE_SIZE] = r
 
     TOT_LIST = ("Off", "5 s", "10 s", "15 s", "30 s")
     POLITELY = ("Impolite", "Carrier Match", "CC match")

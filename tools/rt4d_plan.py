@@ -102,6 +102,18 @@ def apply(mem, factory):
             R.encode_channel(mem, Channel(number=n, empty=True))
     for c in chans:
         R.encode_channel(mem, c)
+    # Zonas para navegar en "Zone mode"
+    by_prefix = lambda pred: [c.number for c in chans if pred(c)]  # noqa: E731
+    zones = [("USO", by_prefix(lambda c: c.number <= 19)),
+             ("MARITIMO", by_prefix(lambda c: c.name.startswith("RX MAR") or c.name.startswith("RX COST"))),
+             ("REP ANALOG", by_prefix(lambda c: c.name.startswith("RX ") and c.extra.get("modo") == "FM"
+                                      and not c.name.startswith(("RX MAR", "RX COST")))),
+             ("REP DMR", by_prefix(lambda c: c.extra.get("modo") == "DMR"))]
+    for z, (name, members) in enumerate(zones, 1):
+        R.encode_zone(mem, z, name, members)
+    for z in range(len(zones) + 1, 257):              # resto de zonas: vacias (la 5-256 ya lo estan)
+        if R.decode_zone(mem, z)["channels"]:
+            R.encode_zone(mem, z, "Zone-%03d" % z, [])
     keep = {"radio_name", "welcome", "dtmf_control", "tx_priority", "active_ch_a", "area_a_show", "area_b_show"}
     for s in R.SETTINGS:
         if s.key not in keep:
@@ -110,7 +122,8 @@ def apply(mem, factory):
     R.setting("welcome").write(mem, "RT-4D")
     R.setting("dtmf_control").write(mem, False)
     R.setting("tx_priority").write(mem, "Edit")
-    R.setting("active_ch_a").write(mem, 0)            # linea A en el canal 1 (PMR 01)
+    if R.decode_channel(mem, R.setting("active_ch_a").read(mem) + 1).empty:
+        R.setting("active_ch_a").write(mem, 0)        # linea A en un canal vacio -> canal 1 (PMR 01)
     R.setting("area_a_show").write(mem, "Show Alias")  # mostrar el nombre del canal en ambas lineas
     R.setting("area_b_show").write(mem, "Show Alias")
     return chans

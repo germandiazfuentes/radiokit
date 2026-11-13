@@ -328,7 +328,7 @@ class TestRT4D(_NoSleep):
         self.assertEqual(bytes(fake.flash[0x204C:0x2052]), b"RT-4D\xff")
         self.assertEqual(fake.flash[0x2208], 0)
         tgt2 = base.copy()
-        tgt2.data[0x1C000] ^= 1                                 # zonas: aun no escribibles
+        tgt2.data[0x5C000] ^= 1                                 # contactos: aun no escribibles
         with self.assertRaises(ProtectedRegionError):
             svc.plan(base, tgt2)
 
