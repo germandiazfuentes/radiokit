@@ -68,12 +68,17 @@ class RadtelSPIProtocol(Protocol):
     REGION_IDS = ((0x002000, 0x1000, 0x90), (0x004000, 0xC000, 0x91), (0x01C000, 0x20000, 0x92),
                   (0x05C000, 0x10000, 0x93), (0x07C000, 0x3000, 0x94), (0x082000, 0x3000, 0x95),
                   (0x0D6000, 0x1000, 0x99))
-    WRITE_BLOCK = KB
+    WRITE_BLOCK = 0x1000                 # sector de flash: se escribe siempre completo (4 paquetes)
 
     def write_block(self, addr, data):
-        """Escribe 1 KB en la flash. Paquete: zona | KB dentro de la zona (2 B) | 1024 B | suma."""
-        if len(data) != self.KB or addr % self.KB:
+        """Escribe uno o varios KB alineados (en la practica, sectores completos de 4 KB)."""
+        if len(data) % self.KB or addr % self.KB or not data:
             raise ProtocolError("Escritura de RT-4D: bloques de 1 KB alineados")
+        for i in range(0, len(data), self.KB):
+            self._write_kb(addr + i, data[i:i + self.KB])
+
+    def _write_kb(self, addr, data):
+        """Paquete: zona | KB dentro de la zona (2 B) | 1024 B | suma."""
         for base, size, rid in self.REGION_IDS:
             if base <= addr < base + size:
                 kb = (addr - base) // self.KB

@@ -133,8 +133,9 @@ class RadioService:
             raise ValueError("No hay cambios que escribir")
         self.log("Plan: %d bloques (%s)" % (len(plan.blocks), ", ".join(plan.regions)))
 
+        check = driver.WRITE_CHECK_RANGES
         with self.transport_factory(port) as t:
-            _, proto, current = self._session_read(t, progress, expect=driver, keep_open=True)
+            _, proto, current = self._session_read(t, progress, expect=driver, keep_open=True, ranges=check)
             current.meta["port"] = port
             pre = self._backup(current, driver, "prewrite")
             changed = [b for b in plan.blocks if current.data[b:b + bs] != base.data[b:b + bs]]
@@ -155,9 +156,17 @@ class RadioService:
             proto.close()
         self.log("Escritura completada. Verificando...")
 
-        time.sleep(4)
-        with self.transport_factory(port) as t:
-            _, _, after = self._session_read(t, progress, expect=driver)
+        after = None
+        for attempt in range(3):                       # algunas radios tardan en volver tras escribir
+            time.sleep(driver.POST_WRITE_DELAY * (attempt + 1))
+            try:
+                with self.transport_factory(port) as t:
+                    _, _, after = self._session_read(t, progress, expect=driver, ranges=check)
+                break
+            except LookupError:
+                self.log("La radio aun no responde tras escribir; reintentando...")
+        if after is None:
+            raise VerifyError("Escrito, pero la radio no responde para verificar. Copia previa: %s" % pre)
         after.meta["port"] = port
         result.postwrite_backup = self._backup(after, driver, "postwrite")
         bad = [b for b in plan.blocks if after.data[b:b + bs] != target.data[b:b + bs]]
@@ -165,6 +174,9 @@ class RadioService:
             raise VerifyError("La verificacion ha fallado en %s. Copia previa: %s"
                               % (", ".join("0x%04X" % b for b in bad), pre))
         result.verified = True
-        result.other_diffs = ["0x%04X" % a for a in after.diff_bytes(target)]
+        diffs = after.diff_bytes(target)
+        if check:
+            diffs = [a for a in diffs if any(s <= a < e for s, e in check)]
+        result.other_diffs = ["0x%04X" % a for a in diffs]
         self.log("VERIFICADO: %d bloques escritos correctamente." % len(plan.blocks))
         return result

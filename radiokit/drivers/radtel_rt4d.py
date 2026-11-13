@@ -94,8 +94,12 @@ class RadtelRT4D(RadioDriver):
     PROTOCOL_PARAMS = {}
     PRIORITY = 1
     MEM_SIZE = 4 * 1024 * 1024
-    WRITE_BLOCK = 1024
-    WRITABLE = ()                      # solo lectura
+    WRITE_BLOCK = 0x1000               # sector de flash completo
+    # Solo la zona de ajustes, verificada con escritura real. Canales y zonas: pendientes.
+    WRITABLE = ((0x2000, 0x3000, "Ajustes de menu"),)
+    # Lecturas de comprobacion antes/despues de escribir (no hace falta leer los 4 MB)
+    WRITE_CHECK_RANGES = ((0x0000, 0x10000),)
+    POST_WRITE_DELAY = 8
     SETTINGS = RT4D_SETTINGS
     REGIONS = ((0x000000, 0x400000, "Flash SPI completa (codeplug, contactos, calibracion...)", "unknown"),)
     NOTES = ("Solo copia de seguridad de la flash completa (~6 min a 115200). El editor de canales DMR "

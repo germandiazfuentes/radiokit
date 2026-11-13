@@ -304,7 +304,33 @@ class TestRT4D(_NoSleep):
                          (140_125_000, "DMR", 1, 0, "High"))
         self.assertEqual((c9.name, c9.rx_freq, c9.extra["modo"], c9.rx_tone, c9.tx_tone),
                          ("PRUEBA", 145_555_000, "FM", "88.5", "D023I"))
-        self.assertIsNotNone(drv.write_block_reason(img))
+        self.assertIsNone(drv.write_block_reason(img))
+
+    def test_settings_write_flow(self):
+        from radiokit.drivers.radtel_rt4d import RadtelRT4D as R
+        from radiokit.testing.fake_rt4d import FakeRT4D
+        flash = bytearray(b"\xff" * R.MEM_SIZE)
+        flash[0x2000:0x3000] = bytes(0x1000)
+        flash[0x204C:0x205C] = b"PRUEBA".ljust(16, b"\xff")
+        flash[0x2208] = 1                                      # DTMF Control On
+        fake = FakeRT4D(bytes(flash))
+        svc = self.service(fake)
+        _, base, _ = svc.read("FAKE", ranges=R.WRITE_CHECK_RANGES)
+        tgt = base.copy()
+        R.setting("dtmf_control").write(tgt.data, False)
+        R.setting("radio_name").write(tgt.data, "RT-4D")
+        plan = svc.plan(base, tgt)
+        self.assertEqual(plan.blocks, [0x2000])                 # un sector de 4 KB
+        self.assertEqual(sorted(plan.settings), ["dtmf_control", "radio_name"])
+        res = svc.write("FAKE", base, tgt)
+        self.assertTrue(res.verified)
+        self.assertEqual(fake.writes, [0x2000, 0x2400, 0x2800, 0x2C00])   # 4 paquetes de 1 KB
+        self.assertEqual(bytes(fake.flash[0x204C:0x2052]), b"RT-4D\xff")
+        self.assertEqual(fake.flash[0x2208], 0)
+        tgt2 = base.copy()
+        tgt2.data[0x4000] ^= 1                                  # canales: aun no escribibles
+        with self.assertRaises(ProtectedRegionError):
+            svc.plan(base, tgt2)
 
 
 class TestUVK5(_NoSleep):
