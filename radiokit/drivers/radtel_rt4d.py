@@ -7,9 +7,46 @@ disponga de una copia real de la radio y se sepa que firmware lleva.
 from __future__ import annotations
 
 from ..core.model import Band, Capabilities
+from ..core.settings import Setting as S
 from ..protocols.radtel_spi import RadtelSPIProtocol
 from . import register
 from .base import RadioDriver
+
+
+TIMER = ("Off", "5 s", "10 s", "15 s", "30 s")     # inicio de las listas de tiempos (verificado)
+G_R, G_S, G_A = "Radio", "Escaneo", "Pantalla"
+# Ajustes del menu "Radio Setting" verificados uno a uno (lectura antes/despues), firmware 3.13.
+RT4D_SETTINGS = (
+    S("radio_name", "01 Nombre de radio", G_R, 0x204C, "text", width=16, pad=0xFF, menu="Radio Name"),
+    S("welcome", "Mensaje de bienvenida (sin verificar)", G_A, 0x202C, "text", width=16, pad=0xFF),
+    S("voice", "02 Voz", G_R, 0x205C, "bool", menu="Voice Prompt"),
+    S("key_beep", "03 Pitido de teclas", G_R, 0x205D, "bool", menu="Key Beep"),
+    S("lock_timer", "04 Bloqueo de teclado", G_R, 0x205F, "list", TIMER, menu="Lock Timer"),
+    S("backlight", "05 Retroiluminacion", G_A, 0x2060, "bool", menu="Backlight"),
+    S("light_timer", "06 Apagado de luz", G_A, 0x2062, "list", TIMER, menu="Light Timer"),
+    S("brightness", "07 Brillo", G_A, 0x2061, "int", max=4, menu="Brightness"),
+    S("menu_exit", "08 Salida de menu", G_R, 0x2065, "list", TIMER, menu="Menu Exit"),
+    S("state_timer", "09 Mostrar estado", G_A, 0x2011, "list", TIMER, menu="State Timer"),
+    S("dual_standby", "10 Doble escucha", G_R, 0x2066, "bool", menu="Dual Standby"),
+    S("tx_priority", "11 Prioridad TX", G_R, 0x207E, "list", ("Edit", "Busy"), menu="TX priority"),
+    S("freq_step", "12 Paso (kHz)", G_R, 0x2080, "list",
+      ("0.25", "1.25", "2.5", "5", "6.25", "10", "12.5", "20", "25", "50", "100", "500", "1000", "5000"),
+      menu="Freq Step"),
+    S("talk_around", "13 Talk Around", G_R, 0x2067, "list", ("Off", "Talk Around", "Invert Freq"),
+      menu="Talk Around"),
+    S("save_mode", "14 Ahorro de bateria", G_R, 0x2063, "list", ("Off", "1:1", "1:2", "1:3"), menu="Save Mode"),
+    S("scan_mode", "15 Modo de escaneo", G_S, 0x20A3, "list", ("CO", "TO", "SE"), menu="Scan Mode"),
+    S("scan_dir", "16 Direccion de escaneo", G_S, 0x20A2, "list", ("Up", "Down"), menu="Scan Direction"),
+    S("scan_dwell", "17 Espera de escaneo", G_S, 0x20A5, "int", max=30, menu="Scan Dwell"),
+    S("scan_return", "18 Retorno de escaneo", G_S, 0x20A4, "list", ("Original CH", "Current CH"),
+      menu="Scan Return"),
+    S("alarm_type", "19 Tipo de alarma", G_R, 0x2068, "list", ("Local", "Remote", "Local+Remote"),
+      menu="Alarm Type"),
+    S("area_a_show", "22 Linea A muestra", G_A, 0x2085, "list", ("Show CH No", "Show Freq", "Show Alias"),
+      menu="Area A Show"),
+    S("lcd_contrast", "31 Contraste LCD", G_A, 0x20E9, "int", max=63, menu="LCD Contrast"),
+    S("active_ch_a", "Canal activo linea A (0 = canal 1)", G_A, 0x208C, "int", max=255, advanced=True),
+)
 
 
 @register
@@ -24,6 +61,7 @@ class RadtelRT4D(RadioDriver):
     MEM_SIZE = 4 * 1024 * 1024
     WRITE_BLOCK = 1024
     WRITABLE = ()                      # solo lectura
+    SETTINGS = RT4D_SETTINGS
     REGIONS = ((0x000000, 0x400000, "Flash SPI completa (codeplug, contactos, calibracion...)", "unknown"),)
     NOTES = ("Solo copia de seguridad de la flash completa (~6 min a 115200). El editor de canales DMR "
              "se anadira tras analizar una copia real y el firmware de la radio.")

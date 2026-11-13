@@ -22,6 +22,7 @@ class Setting:
     menu: str = ""              # nombre en el menu de la radio (p.ej. "SQL")
     help: str = ""
     advanced: bool = False      # ocultar por defecto (ajustes "de servicio")
+    pad: int = 0x20             # relleno de los textos (0x20 espacio, 0xFF en algunas radios)
     meta: dict = field(default_factory=dict)
 
     def _mask(self):
@@ -46,7 +47,7 @@ class Setting:
     def write(self, mem: bytearray, value):
         if self.kind == "text":
             b = str(value).encode("ascii", "strict")[:self.width]
-            mem[self.offset:self.offset + self.width] = b.ljust(self.width, b" ")
+            mem[self.offset:self.offset + self.width] = b.ljust(self.width, bytes([self.pad]))
             return
         if self.kind == "freq_fm":
             v = round(float(value) * 10)
