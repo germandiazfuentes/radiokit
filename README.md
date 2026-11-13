@@ -10,7 +10,7 @@ Para conectar la radio al PC hace falta un cable USB con conector Kenwood de 2 c
 
 👉 **[Cable de programación USB 2 pines para Baofeng](https://link.amazon/B00vVvpnN)** (Amazon)
 
-Compatible con: Baofeng **UV-S Plus (tri)** (probado con radiokit), UV-5R, UV-5RA, UV-5RE, UV-5R EX, UV-5RX3, BF-888S, BF-88E, Quansheng UV-K5,
+Compatible con: Baofeng **UV-S Plus (tri)** y Radtel **RT-4D** (probados con radiokit), UV-5R, UV-5RA, UV-5RE, UV-5R EX, UV-5RX3, BF-888S, BF-88E, Quansheng UV-K5,
 Retevis RT24, RT27, RT22, RT5R, RT622, RT3S, H777, RA79, GA-2S, y radios Kenwood y Wouxun con el mismo conector.
 Funciona en Windows XP/7/8/10/11 (no en Mac).
 
@@ -69,7 +69,7 @@ docs/                investigación, canales útiles en España, cómo añadir r
 | Baofeng **UV-5R** | Clonado Baofeng clásico (mismo handshake; se distingue por firmware) | Lectura; escritura se habilita tras verificar con la radio |
 | Baofeng **UV-13 Pro** (V1/V2) | Familia UV-17 (57600, páginas de flash con nivelación de desgaste) | Experimental, solo lectura |
 | Quansheng **UV-K5** / UV-K5(8) / UV-K6 | Paquetes 38400 con XOR + CRC16 | Lectura de 200 canales, ajustes y menú oculto (F-LOCK, TX 200/350/500); escritura tras verificar, solo con firmware original |
-| Radtel **RT-4D** (DMR) | Flash SPI 115200 | Copia de seguridad completa de la flash (4 MB); editor DMR pendiente |
+| Radtel **RT-4D** (DMR) | Flash SPI 115200 | Copia completa de la flash (4 MB, verificada con firmware original V3.13) y lectura de canales analógicos y DMR (TS, CC, contacto, subtonos); edición pendiente |
 | Baofeng BF-A58S / UV-82III | Clonado Baofeng clásico | Experimental, solo lectura |
 
 Añadir más: [docs/ANADIR_RADIO.md](docs/ANADIR_RADIO.md).

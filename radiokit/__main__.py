@@ -53,6 +53,7 @@ def main(argv=None):
     sub.add_parser("drivers")
     r = sub.add_parser("read")
     r.add_argument("--port", required=True)
+    r.add_argument("--model", help="ID del modelo (ver 'drivers') para no autodetectar, p.ej. radtel.rt-4d")
     s = sub.add_parser("show")
     s.add_argument("path")
     w = sub.add_parser("serve")
@@ -69,7 +70,7 @@ def main(argv=None):
             print("%-26s %-8s %-18s %s" % (d.ID, d.VENDOR, d.MODEL, ", ".join(d.ALIASES)))
     elif a.cmd == "read":
         svc = RadioService(BACKUPS)
-        d, img, path = svc.read(a.port, _progress)
+        d, img, path = svc.read(a.port, _progress, driver_id=a.model)
         print("%s %s firmware %s -> %s" % (d.VENDOR, d.MODEL, img.meta.get("firmware"), path))
     elif a.cmd == "show":
         cmd_show(a.path)

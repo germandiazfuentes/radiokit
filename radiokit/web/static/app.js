@@ -103,7 +103,9 @@ function renderChannels() {
     if (c.empty) return `<tr class="${cls}" data-n="${c.number}"><td class="num">${c.number}</td><td colspan="9">vacio — pulsa para crear</td></tr>`;
     const tx = c.tx_freq === null ? '<span class="chip rxonly">solo escucha</span>'
       : c.duplex === "" ? "=" : `${c.duplex} ${mhz(c.tx_freq)}`;
-    const pmr = c.pmr446 ? `PMR ${c.pmr446}${c.pmr_subtone ? " · sub " + c.pmr_subtone : ""}` : "";
+    const x = c.extra || {};
+    const pmr = x.modo === "DMR" ? `DMR · TS${x.timeslot} · CC${x.color_code}`
+      : c.pmr446 ? `PMR ${c.pmr446}${c.pmr_subtone ? " · sub " + c.pmr_subtone : ""}` : (x.modo || "");
     return `<tr class="${cls}" data-n="${c.number}"><td class="num">${c.number}</td><td>${esc(c.name)}</td>
       <td class="num">${mhz(c.rx_freq)}</td><td class="num">${tx}</td><td>${chipTone(c.tx_tone)}</td><td>${chipTone(c.rx_tone)}</td>
       <td>${esc(c.power)}</td><td>${esc(c.bandwidth)}</td><td>${c.scan ? "si" : "no"}</td><td>${pmr}</td></tr>`;

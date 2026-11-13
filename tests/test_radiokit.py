@@ -280,13 +280,30 @@ class TestRT4D(_NoSleep):
     def test_full_flash_backup(self):
         from radiokit.drivers.radtel_rt4d import RadtelRT4D
         from radiokit.testing.fake_rt4d import FakeRT4D
-        flash = bytes((i * 7 + (i >> 10)) & 0xFF for i in range(RadtelRT4D.MEM_SIZE))
-        fake = FakeRT4D(flash)
+        flash = bytearray((i * 7 + (i >> 10)) & 0xFF for i in range(RadtelRT4D.MEM_SIZE))
+        flash[0x4000:0x10000] = b"\xff" * 0xC000
+        # Canal 1 DMR (140.125, TS1, CC0, alta) y canal 9 FM 145.555 con CTCSS 88.5 / DCS 023 invertido
+        r1 = bytearray(48)
+        r1[0:2] = b"\x01\x01"                                # modo DMR en 0x02 (=0), TS1, CC0
+        r1[0x06:0x0A] = r1[0x0A:0x0E] = bytes.fromhex("54d0d500")
+        r1[0x0E:0x10], r1[0x10] = bytes.fromhex("9e12"), 1
+        r1[0x20:0x30] = b"\xff" * 16
+        flash[0x4000:0x4000 + 48] = r1
+        r9 = bytearray(bytes.fromhex("000101007513" "6c19de00" "6c19de00" "1330" "01000010") + bytes(12))
+        r9[0x20:0x30] = b"PRUEBA".ljust(16, b"\xff")
+        flash[0x4000 + 8 * 48:0x4000 + 9 * 48] = r9
+        fake = FakeRT4D(bytes(flash))
         drv, img, path = self.service(fake).read("FAKE")
         self.assertIs(drv, RadtelRT4D)
-        self.assertEqual(bytes(img.data), flash)
+        self.assertEqual(bytes(img.data), bytes(flash))
         self.assertTrue(fake.closed_cmd)
-        self.assertEqual(drv.channels(img), [])
+        chans = [c for c in drv.channels(img) if not c.empty]
+        self.assertEqual([c.number for c in chans], [1, 9])
+        c1, c9 = chans
+        self.assertEqual((c1.rx_freq, c1.extra["modo"], c1.extra["timeslot"], c1.extra["color_code"], c1.power),
+                         (140_125_000, "DMR", 1, 0, "High"))
+        self.assertEqual((c9.name, c9.rx_freq, c9.extra["modo"], c9.rx_tone, c9.tx_tone),
+                         ("PRUEBA", 145_555_000, "FM", "88.5", "D023I"))
         self.assertIsNotNone(drv.write_block_reason(img))
 
 

@@ -4,6 +4,9 @@ backups/
 # Codigo de terceros clonado solo como referencia (CHIRP, rt4d-cps sin licencia)
 vendor/
 
+# Fotos de pantallas de radios (personales)
+fotos/
+
 # Entorno local
 continua Baofeng.bat
 .venv/
