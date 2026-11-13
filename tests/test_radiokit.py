@@ -367,13 +367,17 @@ class TestUVK5(_NoSleep):
     def test_read_and_write_blocked_by_firmware(self):
         from radiokit.testing.fake_k5 import FakeUVK5
         K, mem, _ = self.eeprom()
-        for fw, expect in (("k5_2.01.26", "sin verificar"), ("EGZUMER v0.22", "no es el original")):
+        for fw, expect in (("k5_2.01.23", None), ("EGZUMER v0.22", "no es el original")):
             fake = FakeUVK5(bytes(mem), fw)
             drv, img, _ = self.service(fake).read("FAKE")
             self.assertIs(drv, K)
             self.assertEqual(bytes(img.data), bytes(mem))
             self.assertEqual(img.meta["firmware"], fw)
-            self.assertIn(expect, K.write_block_reason(img))
+            reason = K.write_block_reason(img)
+            if expect is None:
+                self.assertIsNone(reason)
+            else:
+                self.assertIn(expect, reason)
 
     def test_write_flow_when_verified(self):
         from radiokit.testing.fake_k5 import FakeUVK5

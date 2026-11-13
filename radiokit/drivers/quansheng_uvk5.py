@@ -71,7 +71,9 @@ class QuanshengUVK5(RadioDriver):
     PRIORITY = 4
     MEM_SIZE = 0x2000
     WRITE_BLOCK = 0x80
-    HARDWARE_VERIFIED = False
+    # Verificado 2026-11-13 con un UV-K5 real, firmware k5_2.01.23: frecuencias, squelch y mensajes
+    # comprobados en pantalla; dos lecturas identicas.
+    HARDWARE_VERIFIED = True
     WRITABLE = ((0x0000, 0x1D00, "Canales, atributos, nombres y ajustes"),)
     REGIONS = (
         (0x0000, 0x0C80, "Canales 1-200 (16 B)", "user"),
