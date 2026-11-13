@@ -209,7 +209,7 @@ function renderSettings() {
       else if (s.kind === "bool") ctl = `<input type="checkbox" data-k="${s.key}" ${s.value ? "checked" : ""}>`;
       else if (s.kind === "text") ctl = `<input data-k="${s.key}" maxlength="${s.width}" value="${esc(s.value)}">`;
       else if (s.kind === "freq_fm") ctl = `<input data-k="${s.key}" inputmode="decimal" value="${s.value ?? ""}">`;
-      else ctl = `<input data-k="${s.key}" type="number" min="${s.min}" max="${s.max}" value="${s.value}">`;
+      else ctl = `<input data-k="${s.key}" type="number" min="${s.min}" max="${s.max}" step="${s.step || 1}" value="${s.value}">`;
       return `<div class="setting ${changed.has(s.key) ? "changed" : ""}" title="${esc(s.help)}"><div class="lbl">${esc(s.label)}
         <small>${esc(s.menu ? "Menu " + s.menu : "")}${s.help ? " · " + esc(s.help) : ""}</small></div>${ctl}</div>`;
     }).join("")}</div>`).join("");
