@@ -109,6 +109,10 @@ class RadtelRT4D(RadioDriver):
     #   0x05 DMR: modo doble intervalo (1 = Dual Slot on; verificado por diferencia)
     #   0x13 bit 7 = excluido del escaneo (verificado); TX se guarda absoluta (offset ya aplicado)
     # Firmware verificado: "RT-4D Test V3.13 2025-01-08" (no publicado en la web de Radtel).
+    # Escritura (probada 2026-11-13 con datos identicos en la zona 0x90 = ajustes 0x2000, 4 KB):
+    #   la radio acepta los paquetes (06) y, al cerrar la sesion, sincroniza sus copias de reserva
+    #   (ajustes 0x3000, canales 0x10000, zonas 0x3C000) con las principales. Basta escribir las principales.
+    #   Tras cerrar, esperar unos segundos antes de volver a leer. Escribir siempre sectores completos de 4 KB.
     #   0x06 RX y 0x0A TX: u32 LE en pasos de 10 Hz       0x0E-0F subtono TX (analogico)
     #   0x10 potencia (1 = alta)                           0x18-19 contacto DMR (indice, FFFF = ninguno)
     #   0x20-2F nombre (GBK, FF = vacio)

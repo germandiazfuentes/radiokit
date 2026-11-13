@@ -64,8 +64,28 @@ class RadtelSPIProtocol(Protocol):
                 progress(done, total, "Leyendo flash 0x%06X" % addr)
         return out
 
+    # Zonas escribibles: (direccion, tamano, identificador de zona del protocolo)
+    REGION_IDS = ((0x002000, 0x1000, 0x90), (0x004000, 0xC000, 0x91), (0x01C000, 0x20000, 0x92),
+                  (0x05C000, 0x10000, 0x93), (0x07C000, 0x3000, 0x94), (0x082000, 0x3000, 0x95),
+                  (0x0D6000, 0x1000, 0x99))
+    WRITE_BLOCK = KB
+
     def write_block(self, addr, data):
-        raise ProtocolError("La escritura en el RT-4D aun no esta implementada")
+        """Escribe 1 KB en la flash. Paquete: zona | KB dentro de la zona (2 B) | 1024 B | suma."""
+        if len(data) != self.KB or addr % self.KB:
+            raise ProtocolError("Escritura de RT-4D: bloques de 1 KB alineados")
+        for base, size, rid in self.REGION_IDS:
+            if base <= addr < base + size:
+                kb = (addr - base) // self.KB
+                break
+        else:
+            raise ProtocolError("0x%06X no pertenece a ninguna zona escribible" % addr)
+        pkt = bytearray([rid, (kb >> 8) & 0xFF, kb & 0xFF]) + bytes(data) + b"\x00"
+        pkt[-1] = _cs(pkt[:-1])
+        self.t.write(bytes(pkt))
+        ack = self.t.read(1, self.TIMEOUT)
+        if ack != b"\x06":
+            raise ProtocolError("El RT-4D no confirma la escritura en 0x%06X (respuesta %r)" % (addr, ack))
 
     def close(self):
         try:
