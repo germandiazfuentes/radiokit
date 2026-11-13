@@ -68,8 +68,8 @@ docs/                investigación, canales útiles en España, cómo añadir r
 | Baofeng **UV-S Plus (tri)** / UV-S9X3 | Clonado Baofeng clásico | Verificado con hardware: lectura y escritura |
 | Baofeng **UV-5R** | Clonado Baofeng clásico (mismo handshake; se distingue por firmware) | Lectura; escritura se habilita tras verificar con la radio |
 | Baofeng **UV-13 Pro** (V1/V2) | Familia UV-17 (57600, páginas de flash con nivelación de desgaste) | Experimental, solo lectura |
-| Quansheng **UV-K5** / UV-K5(8) / UV-K6 | Paquetes 38400 con XOR + CRC16 | Lectura de 200 canales, ajustes y menú oculto (F-LOCK, TX 200/350/500); escritura tras verificar, solo con firmware original |
-| Radtel **RT-4D** (DMR) | Flash SPI 115200 | Copia completa de la flash (4 MB, verificada con firmware original V3.13) y lectura de canales analógicos y DMR (TS, CC, contacto, subtonos); edición pendiente |
+| Quansheng **UV-K5** / UV-K5(8) / UV-K6 | Paquetes 38400 con XOR + CRC16 | Verificado con hardware (firmware k5_2.01.23): lectura y escritura de canales y ajustes, menú oculto (F-LOCK, TX 200/350/500). Firmwares alternativos: solo lectura |
+| Radtel **RT-4D** (DMR) | Flash SPI 115200 | Verificado con hardware (firmware V3.13): copia completa de la flash, canales analógicos y DMR, ~46 ajustes de menú; escritura de ajustes verificada; escritura de canales pendiente |
 | Baofeng BF-A58S / UV-82III | Clonado Baofeng clásico | Experimental, solo lectura |
 
 Añadir más: [docs/ANADIR_RADIO.md](docs/ANADIR_RADIO.md).
