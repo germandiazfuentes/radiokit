@@ -44,6 +44,8 @@ RT4D_SETTINGS = (
       menu="Alarm Type"),
     S("area_a_show", "22 Linea A muestra", G_A, 0x2085, "list", ("Show CH No", "Show Freq", "Show Alias"),
       menu="Area A Show"),
+    S("area_b_show", "25 Linea B muestra", G_A, 0x208A, "list", ("Show CH No", "Show Freq", "Show Alias"),
+      menu="Area B Show"),
     S("lcd_contrast", "31 Contraste LCD", G_A, 0x20E9, "int", max=63, menu="LCD Contrast"),
     S("active_ch_a", "Canal activo linea A (0 = canal 1)", G_A, 0x208C, "int", max=255, advanced=True),
     # Digital Set (verificado)
