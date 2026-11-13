@@ -46,6 +46,22 @@ def cmd_show(path):
         print("  %-28s %s" % (s.label, s.read(img.data)))
 
 
+def cmd_diff(pa, pb):
+    """Bytes distintos entre dos copias, agrupados, con interpretacion si el driver la ofrece."""
+    a, b = MemoryImage.load(pa), MemoryImage.load(pb)
+    d = drivers.get_driver(a.driver_id)
+    pa_ranges = a.meta.get("partial_ranges") or b.meta.get("partial_ranges")
+    diffs = a.diff_bytes(b)
+    if pa_ranges:   # ignorar lo que no se leyo en alguna de las dos
+        rr = [tuple(int(x, 16) for x in r.split("-")) for r in pa_ranges]
+        diffs = [i for i in diffs if any(s <= i < e for s, e in rr)]
+    print("%d bytes distintos" % len(diffs))
+    explain = getattr(d, "explain_offset", None)
+    for i in diffs:
+        note = explain(i) if explain else ""
+        print("  0x%06X  %02X -> %02X  %s" % (i, a.data[i], b.data[i], note))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="radiokit", description="radiokit %s" % __version__)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -54,6 +70,11 @@ def main(argv=None):
     r = sub.add_parser("read")
     r.add_argument("--port", required=True)
     r.add_argument("--model", help="ID del modelo (ver 'drivers') para no autodetectar, p.ej. radtel.rt-4d")
+    r.add_argument("--range", action="append", metavar="INICIO-FIN",
+                   help="leer solo esta zona (hex, p.ej. 0x2000-0x10000); se puede repetir")
+    df = sub.add_parser("diff", help="comparar dos copias y explicar que ha cambiado")
+    df.add_argument("a")
+    df.add_argument("b")
     s = sub.add_parser("show")
     s.add_argument("path")
     w = sub.add_parser("serve")
@@ -70,10 +91,13 @@ def main(argv=None):
             print("%-26s %-8s %-18s %s" % (d.ID, d.VENDOR, d.MODEL, ", ".join(d.ALIASES)))
     elif a.cmd == "read":
         svc = RadioService(BACKUPS)
-        d, img, path = svc.read(a.port, _progress, driver_id=a.model)
+        ranges = [tuple(int(x, 16) for x in r.split("-")) for r in a.range] if a.range else None
+        d, img, path = svc.read(a.port, _progress, driver_id=a.model, ranges=ranges)
         print("%s %s firmware %s -> %s" % (d.VENDOR, d.MODEL, img.meta.get("firmware"), path))
     elif a.cmd == "show":
         cmd_show(a.path)
+    elif a.cmd == "diff":
+        cmd_diff(a.a, a.b)
     elif a.cmd == "serve":
         from .web.server import serve
         serve(a.port, BACKUPS, open_browser=not a.no_browser, demo_dump=a.demo)

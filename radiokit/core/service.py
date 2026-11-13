@@ -77,11 +77,11 @@ class RadioService:
         return str(p)
 
     def _session_read(self, t: Transport, progress, expect: type[RadioDriver] | None = None,
-                      keep_open: bool = False):
+                      keep_open: bool = False, ranges=None):
         driver, proto, info = registry.detect(t, log=self.log, only=expect)
         if expect and driver.ID != expect.ID:
             raise RadioChangedError("Conectada una %s y se esperaba una %s" % (driver.MODEL, expect.MODEL))
-        data = proto.read_memory(driver.MEM_SIZE, progress, driver.READ_RANGES)
+        data = proto.read_memory(driver.MEM_SIZE, progress, ranges or driver.READ_RANGES)
         if not keep_open:
             proto.close()
         meta = dict(info, read_at=datetime.now().isoformat(timespec="seconds"),
@@ -89,15 +89,18 @@ class RadioService:
         return driver, proto, MemoryImage(data, driver.ID, meta)
 
     # ------------------------------------------------------------------
-    def read(self, port: str, progress=_noprogress, driver_id: str | None = None
+    def read(self, port: str, progress=_noprogress, driver_id: str | None = None, ranges=None
              ) -> tuple[type[RadioDriver], MemoryImage, str]:
         """Detecta la radio (o usa el modelo indicado) y descarga su memoria (solo lectura).
+        `ranges` limita la lectura (el resto queda a FF): util para comparar antes/despues.
         Guarda copia automatica."""
         only = registry.get_driver(driver_id) if driver_id else None
         with self.transport_factory(port) as t:
-            driver, _, image = self._session_read(t, progress, expect=only)
+            driver, _, image = self._session_read(t, progress, expect=only, ranges=ranges)
         image.meta["port"] = port
-        path = self._backup(image, driver, "read")
+        if ranges:
+            image.meta["partial_ranges"] = ["0x%X-0x%X" % r for r in ranges]
+        path = self._backup(image, driver, "partial" if ranges else "read")
         return driver, image, path
 
     def plan(self, base: MemoryImage, target: MemoryImage) -> WritePlan:
