@@ -328,9 +328,34 @@ class TestRT4D(_NoSleep):
         self.assertEqual(bytes(fake.flash[0x204C:0x2052]), b"RT-4D\xff")
         self.assertEqual(fake.flash[0x2208], 0)
         tgt2 = base.copy()
-        tgt2.data[0x4000] ^= 1                                  # canales: aun no escribibles
+        tgt2.data[0x1C000] ^= 1                                 # zonas: aun no escribibles
         with self.assertRaises(ProtectedRegionError):
             svc.plan(base, tgt2)
+
+    def test_channel_write_flow(self):
+        from radiokit.drivers.radtel_rt4d import RadtelRT4D as R
+        from radiokit.testing.fake_rt4d import FakeRT4D
+        flash = bytearray(b"\xff" * R.MEM_SIZE)
+        flash[0x2000:0x3000] = bytes(0x1000)
+        fake = FakeRT4D(bytes(flash))
+        svc = self.service(fake)
+        _, base, _ = svc.read("FAKE", ranges=R.WRITE_CHECK_RANGES)
+        tgt = base.copy()
+        R.encode_channel(tgt.data, Channel(number=1, empty=False, name="SOSMONT", rx_freq=146_175_000,
+                                           tx_freq=146_175_000, tx_tone="123.0", bandwidth="Narrow",
+                                           extra={"modo": "FM"}))
+        R.encode_channel(tgt.data, Channel(number=200, empty=False, name="DMR", rx_freq=438_412_500,
+                                           tx_freq=430_812_500, bandwidth="Narrow",
+                                           extra={"modo": "DMR", "timeslot": 2, "color_code": 1}))
+        plan = svc.plan(base, tgt)
+        self.assertEqual(plan.channels, [1, 200])
+        self.assertEqual(plan.blocks, [0x4000, 0x6000])          # dos sectores de 4 KB
+        res = svc.write("FAKE", base, tgt)
+        self.assertTrue(res.verified)
+        img = res and fake.flash
+        c1, c200 = R.decode_channel(img, 1), R.decode_channel(img, 200)
+        self.assertEqual((c1.name, c1.tx_tone, c1.bandwidth), ("SOSMONT", "123.0", "Narrow"))
+        self.assertEqual((c200.extra["timeslot"], c200.extra["color_code"], c200.tx_freq), (2, 1, 430_812_500))
 
 
 class TestUVK5(_NoSleep):

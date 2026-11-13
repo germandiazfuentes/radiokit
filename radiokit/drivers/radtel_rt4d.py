@@ -95,10 +95,10 @@ class RadtelRT4D(RadioDriver):
     PRIORITY = 1
     MEM_SIZE = 4 * 1024 * 1024
     WRITE_BLOCK = 0x1000               # sector de flash completo
-    # Solo la zona de ajustes, verificada con escritura real. Canales y zonas: pendientes.
-    WRITABLE = ((0x2000, 0x3000, "Ajustes de menu"),)
-    # Lecturas de comprobacion antes/despues de escribir (no hace falta leer los 4 MB)
-    WRITE_CHECK_RANGES = ((0x0000, 0x10000),)
+    # Ajustes (verificado con escritura real) y canales (sectores de 4 KB). Zonas/contactos: pendientes.
+    WRITABLE = ((0x2000, 0x3000, "Ajustes de menu"), (0x4000, 0x10000, "Canales"))
+    # Lecturas de comprobacion antes/despues de escribir (incluye la copia de reserva de canales 0x10000)
+    WRITE_CHECK_RANGES = ((0x0000, 0x1C000),)
     POST_WRITE_DELAY = 8
     SETTINGS = RT4D_SETTINGS
     REGIONS = ((0x000000, 0x400000, "Flash SPI completa (codeplug, contactos, calibracion...)", "unknown"),)
@@ -125,9 +125,10 @@ class RadtelRT4D(RadioDriver):
 
     @classmethod
     def capabilities(cls):
-        return Capabilities(channels=(1, 1024), name_length=16, name_chars="", power_levels=("High", "Low"),
-                            bandwidths=("Narrow", "Wide", "?"),
-                            bands=(Band(136_000_000, 174_000_000), Band(400_000_000, 480_000_000)),
+        printable = "".join(chr(c) for c in range(32, 127))
+        return Capabilities(channels=(1, 1024), name_length=16, name_chars=printable.upper(),
+                            power_levels=("High", "Low"), bandwidths=("Narrow", "Wide"),
+                            bands=(Band(136_000_000, 174_000_000), Band(400_000_000, 520_000_000)),
                             digital=True)
 
     @staticmethod
@@ -151,12 +152,12 @@ class RadtelRT4D(RadioDriver):
         rx, tx = u32(0x06), u32(0x0A)
         name = r[0x20:0x30].replace(b"\xff", b"").decode("gbk", "replace").strip("\x00 ")
         digital = r[2] == 0
-        tot_list = ("Off", "5 s", "10 s", "15 s", "30 s")      # posicion en la lista del menu (verificado)
+        tot_list = cls.TOT_LIST                                # posicion en la lista del menu (verificado)
         extra = {"modo": "DMR" if digital else "FM",
                  "tot": tot_list[r[0x14]] if r[0x14] < len(tot_list) else "posicion %d" % r[0x14]}
         if digital:
             contact = u16(0x18)
-            politely = ("Impolite", "Carrier Match", "CC match")
+            politely = cls.POLITELY
             extra.update(timeslot=r[3] + 1, color_code=r[4], dual_slot=bool(r[5]),
                          tx_politely=politely[r[0x11]] if r[0x11] < 3 else r[0x11],
                          cifrado=("Key%d" % u16(0x1A)) if u16(0x1A) not in (0, 0xFFFF) else "Off",
@@ -196,10 +197,110 @@ class RadtelRT4D(RadioDriver):
                 return "%s +0x%04X" % (name, a - s)
         return ""
 
+    TOT_LIST = ("Off", "5 s", "10 s", "15 s", "30 s")
+    POLITELY = ("Impolite", "Carrier Match", "CC match")
+    # Plantillas para canales nuevos, copiadas de canales reales de la radio (campos desconocidos incluidos)
+    #   FM  (canal 8 de fabrica):  00 01 01 00 | tono RX | RX | TX | tono TX | 01 00 00 10 | ceros | nombre FF
+    #   DMR (canal 2 de fabrica):  01 01 00 00 00 00 | RX | TX | 9e 12 | 01 00 00 00 | ceros | nombre FF
+    TPL_FM = bytes([0, 1, 1, 0, 0, 0]) + bytes(8) + bytes(2) + bytes([1, 0, 0, 0x10]) + bytes(12) + b"\xff" * 16
+    TPL_DMR = bytes([1, 1, 0, 0, 0, 0]) + bytes(8) + bytes([0x9E, 0x12]) + bytes([1, 0, 0, 0]) + bytes(12) \
+        + b"\xff" * 16
+    assert len(TPL_FM) == len(TPL_DMR) == 48
+
+    @staticmethod
+    def _tone_put(t) -> int:
+        from ..core.model import parse_tone
+        p = parse_tone(t)
+        if p is None:
+            return 0
+        if p[0] == "ctcss":
+            return 0x1000 | round(p[1] * 10)
+        return (0x2000 if p[2] == "N" else 0x3000) | int(str(p[1]), 8)
+
     @classmethod
     def validate_channel(cls, ch):
-        return ["RT-4D: la edicion de canales aun no esta disponible (solo lectura)"]
+        errs = super().validate_channel(ch)
+        if ch.empty:
+            return errs
+        x = ch.extra or {}
+        if x.get("modo", "FM") == "DMR":
+            if not (136_000_000 <= ch.rx_freq <= 174_000_000 or 400_000_000 <= ch.rx_freq <= 470_000_000):
+                errs.append("DMR solo en 136-174 y 400-470 MHz")
+            if x.get("timeslot", 1) not in (1, 2):
+                errs.append("Intervalo DMR debe ser 1 o 2")
+            if not 0 <= int(x.get("color_code", 0)) <= 15:
+                errs.append("Codigo de color 0-15")
+            if x.get("tx_politely", "Impolite") not in cls.POLITELY:
+                errs.append("TX Politely no valido")
+        if x.get("tot", "Off") not in cls.TOT_LIST:
+            errs.append("TOT: valores conocidos %s" % ", ".join(cls.TOT_LIST))
+        try:
+            ch.name.encode("gbk")
+        except UnicodeEncodeError:
+            errs.append("Nombre con caracteres no representables")
+        return errs
 
     @classmethod
     def encode_channel(cls, mem, ch):
-        raise NotImplementedError("RT-4D: edicion aun no disponible")
+        """Escribe solo los campos que cambian; respeta los bytes desconocidos del registro."""
+        errs = cls.validate_channel(ch)
+        if errs:
+            raise ValueError("Canal %d: %s" % (ch.number, "; ".join(errs)))
+        o = cls.CH_BASE + (ch.number - 1) * cls.CH_SIZE
+        old = cls.decode_channel(mem, ch.number)
+        if ch.empty:
+            if not old.empty:
+                mem[o:o + cls.CH_SIZE] = b"\xff" * cls.CH_SIZE
+            return
+        x, ox = ch.extra or {}, (old.extra if not old.empty else {})
+        digital = x.get("modo", ox.get("modo", "FM")) == "DMR"
+        if old.empty or ox.get("modo") != ("DMR" if digital else "FM"):
+            r = bytearray(cls.TPL_DMR if digital else cls.TPL_FM)   # canal nuevo o cambio de modo
+            if not old.empty:
+                r[0x20:0x30] = mem[o + 0x20:o + 0x30]
+            old_cmp = None
+        else:
+            r = bytearray(mem[o:o + cls.CH_SIZE])
+            old_cmp = old
+
+        def changed(attr):
+            return old_cmp is None or getattr(ch, attr) != getattr(old_cmp, attr)
+
+        def xchanged(key, default):
+            return old_cmp is None or x.get(key, default) != ox.get(key, default)
+
+        if changed("rx_freq"):
+            r[0x06:0x0A] = (ch.rx_freq // 10).to_bytes(4, "little")
+        if changed("tx_freq"):
+            r[0x0A:0x0E] = b"\xff" * 4 if ch.tx_freq is None else (ch.tx_freq // 10).to_bytes(4, "little")
+        if changed("name"):
+            r[0x20:0x30] = ch.name.encode("gbk")[:16].ljust(16, b"\xff")
+        if changed("power"):
+            r[0x10] = 1 if ch.power == "High" else 0
+        if changed("scan"):
+            r[0x13] = (r[0x13] & 0x7F) | (0 if ch.scan else 0x80)
+        if xchanged("tot", "Off"):
+            r[0x14] = cls.TOT_LIST.index(x.get("tot", "Off"))
+        if digital:
+            if xchanged("timeslot", 1):
+                r[0x03] = int(x.get("timeslot", 1)) - 1
+            if xchanged("color_code", 0):
+                r[0x04] = int(x.get("color_code", 0))
+            if xchanged("dual_slot", False):
+                r[0x05] = 1 if x.get("dual_slot") else 0
+            if xchanged("tx_politely", "Impolite"):
+                r[0x11] = cls.POLITELY.index(x.get("tx_politely", "Impolite"))
+            if xchanged("cifrado", "Off"):
+                k = x.get("cifrado", "Off")
+                r[0x1A:0x1C] = (0 if k == "Off" else int(str(k).replace("Key", ""))).to_bytes(2, "little")
+            if xchanged("contacto", 1):
+                c = x.get("contacto", 1)
+                r[0x18:0x1A] = (0xFFFF if c is None else int(c) - 1).to_bytes(2, "little")
+        else:
+            if changed("bandwidth"):
+                r[0x03] = 1 if ch.bandwidth == "Narrow" else 0
+            if changed("rx_tone"):
+                r[0x04:0x06] = cls._tone_put(ch.rx_tone).to_bytes(2, "little")
+            if changed("tx_tone"):
+                r[0x0E:0x10] = cls._tone_put(ch.tx_tone).to_bytes(2, "little")
+        mem[o:o + cls.CH_SIZE] = r
