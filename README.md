@@ -10,7 +10,7 @@ Para conectar la radio al PC hace falta un cable USB con conector Kenwood de 2 c
 
 👉 **[Cable de programación USB 2 pines para Baofeng](https://link.amazon/B00vVvpnN)** (Amazon)
 
-Compatible con: Baofeng **UV-S Plus (tri)** y Radtel **RT-4D** (probados con radiokit), UV-5R, UV-5RA, UV-5RE, UV-5R EX, UV-5RX3, BF-888S, BF-88E, Quansheng UV-K5,
+Compatible con: Baofeng **UV-S Plus (tri)**, **UV-5R**, Radtel **RT-4D** y Quansheng **UV-K5** (probados con radiokit), UV-5RA, UV-5RE, UV-5R EX, UV-5RX3, BF-888S, BF-88E,
 Retevis RT24, RT27, RT22, RT5R, RT622, RT3S, H777, RA79, GA-2S, y radios Kenwood y Wouxun con el mismo conector.
 Funciona en Windows XP/7/8/10/11 (no en Mac).
 
@@ -66,10 +66,11 @@ docs/                investigación, canales útiles en España, cómo añadir r
 | Modelo | Protocolo | Estado |
 |---|---|---|
 | Baofeng **UV-S Plus (tri)** / UV-S9X3 | Clonado Baofeng clásico | Verificado con hardware: lectura y escritura |
-| Baofeng **UV-5R** | Clonado Baofeng clásico (mismo handshake; se distingue por firmware) | Lectura; escritura se habilita tras verificar con la radio |
+| Baofeng **UV-5R** con firmware HN5RV (p.ej. fabricados en 2023) | Clonado Baofeng clásico | Verificado con hardware: se detecta y programa como UV-S Plus; necesita subida completa estilo CHIRP para aceptar cambios de nombre (automático) |
+| Baofeng **UV-5R** clásico (firmware BFB/BFS/N5R) | Clonado Baofeng clásico (mismo handshake; se distingue por firmware) | Lectura; escritura se habilita tras verificar con una radio real |
 | Baofeng **UV-13 Pro** (V1/V2) | Familia UV-17 (57600, páginas de flash con nivelación de desgaste) | Experimental, solo lectura |
-| Quansheng **UV-K5** / UV-K5(8) / UV-K6 | Paquetes 38400 con XOR + CRC16 | Verificado con hardware (firmware k5_2.01.23): lectura y escritura de canales y ajustes, menú oculto (F-LOCK, TX 200/350/500). Firmwares alternativos: solo lectura |
-| Radtel **RT-4D** (DMR) | Flash SPI 115200 | Verificado con hardware (firmware V3.13): copia completa de la flash, canales analógicos y DMR, ~46 ajustes de menú; escritura de ajustes verificada; escritura de canales pendiente |
+| Quansheng **UV-K5** / UV-K5(8) / UV-K6 | Paquetes 38400 con XOR + CRC16 | Verificado con hardware (firmware k5_2.01.23): lectura y escritura de canales y ajustes, menú oculto (F-LOCK, TX 200/350/500); canales de solo escucha con TX bloqueada comprobados en la radio. Firmwares alternativos: solo lectura |
+| Radtel **RT-4D** (DMR) | Flash SPI 115200 | Verificado con hardware (firmware V3.13): copia completa de la flash, canales analógicos y DMR, ~46 ajustes de menú y zonas; escritura de ajustes, canales y zonas verificada. No admite canales de solo escucha (la radio los invalida) |
 | Baofeng BF-A58S / UV-82III | Clonado Baofeng clásico | Experimental, solo lectura |
 
 Añadir más: [docs/ANADIR_RADIO.md](docs/ANADIR_RADIO.md).
