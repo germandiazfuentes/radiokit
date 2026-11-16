@@ -74,6 +74,9 @@ class RadioDriver(ABC):
     READ_RANGES: tuple[tuple[int, int], ...] | None = None   # None = toda la memoria
     WRITE_BLOCK = 0x10
     EXPERIMENTAL = False    # sin verificar con hardware: la escritura queda bloqueada
+    # Zonas que la radio exige reescribir enteras y en orden (como CHIRP) cuando cambia algo en ellas.
+    # Los bloques sin cambios se reescriben con el contenido leido de la radio justo antes.
+    FULL_REWRITE_RANGES: tuple[tuple[int, int], ...] = ()
     WRITE_CHECK_RANGES: tuple[tuple[int, int], ...] | None = None   # zonas a leer antes/despues de escribir
     POST_WRITE_DELAY = 4    # segundos a esperar antes de releer para verificar
     # Zonas que la aplicacion puede escribir: (inicio, fin, descripcion). Todo lo demas esta protegido.

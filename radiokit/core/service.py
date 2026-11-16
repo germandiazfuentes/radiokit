@@ -149,9 +149,20 @@ class RadioService:
                 proto.close()
                 self.log("Ensayo: la radio coincide con la base; no se escribe nada.")
                 return result
-            for i, b in enumerate(plan.blocks):
-                proto.write_block(b, bytes(target.data[b:b + bs]))
-                progress(i + 1, len(plan.blocks), "Escribiendo 0x%04X" % b)
+            # Subida completa (si el driver la exige): todos los bloques de las zonas afectadas, en orden.
+            # Los no modificados se reescriben con lo que la radio tiene AHORA (no con la base), para no
+            # deshacer datos que mantiene la propia radio.
+            writes = {b: bytes(target.data[b:b + bs]) for b in plan.blocks}
+            full = driver.FULL_REWRITE_RANGES
+            if any(s <= b < e for s, e in full for b in plan.blocks):      # como CHIRP: todas las zonas
+                for s, e in full:
+                    for b in range(s, e, bs):
+                        writes.setdefault(b, bytes(current.data[b:b + bs]))
+            if len(writes) > len(plan.blocks):
+                self.log("Subida completa: %d bloques (%d con cambios)" % (len(writes), len(plan.blocks)))
+            for i, b in enumerate(sorted(writes)):
+                proto.write_block(b, writes[b])
+                progress(i + 1, len(writes), "Escribiendo 0x%04X" % b)
             proto.finish_write()
             proto.close()
         self.log("Escritura completada. Verificando...")

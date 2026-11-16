@@ -76,6 +76,9 @@ class WP970IFamily(RadioDriver):
     PROTOCOL_PARAMS = {"magics": (MAGIC_WP970I,)}
     MEM_SIZE = 0x2000
     WRITE_BLOCK = 0x10
+    # Algunas unidades (UV-5R con firmware HN5RV011, S/N 23U...) ignoran los cambios de nombre si no se
+    # reescribe toda la zona de usuario en orden, como hace CHIRP. Verificado con hardware 2026-11-16.
+    FULL_REWRITE_RANGES = ((0x0000, 0x0DF0), (0x0E00, 0x1800))
     NAME_LEN = 6
     POWER = ("High", "Mid", "Low")            # valor de bits 'lowpower' = indice
     BANDS = (Band(136_000_000, 174_000_000), Band(400_000_000, 520_000_000))
@@ -259,7 +262,7 @@ class WP970ITriBand(WP970IFamily):
 class BaofengUVSPlusTri(WP970ITriBand):
     ID = "baofeng.uv-s-plus-tri"
     MODEL = "UV-S Plus (tri)"
-    ALIASES = ("UV-S9X3", "UV-S9 Plus tri")
+    ALIASES = ("UV-S9X3", "UV-S9 Plus tri", "UV-5R (firmware HN5RV, verificado)")
     PROTOCOL_PARAMS = {"magics": (MAGIC_UVS9X3,)}
     PRIORITY = 10
     CHIRP_CLASS, CHIRP_MODEL = "UVS9X3", "UV-S9X3"

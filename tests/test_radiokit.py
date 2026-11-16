@@ -137,7 +137,8 @@ class TestServiceWithEmulator(unittest.TestCase):
         self.assertEqual(plan.settings, ["mdfa"])
         res = self.svc.write("FAKE", base, tgt)
         self.assertTrue(res.verified)
-        self.assertEqual(sorted(self.fake.writes), [0x0E30, 0x14D0])
+        # Subida completa (FULL_REWRITE_RANGES): se reescriben las zonas de usuario enteras, en orden
+        self.assertEqual(self.fake.writes, [a for s, e in D.FULL_REWRITE_RANGES for a in range(s, e, 0x10)])
         self.assertEqual(bytes(self.fake.mem), bytes(tgt.data))
 
     def test_dry_run_writes_nothing(self):
@@ -188,6 +189,35 @@ class TestRegistry(unittest.TestCase):
                 for rs, re_, name, kind in d.REGIONS:
                     if kind == "service":
                         self.assertTrue(e <= rs or s >= re_, "%s escribe en zona de servicio %s" % (d.ID, name))
+
+
+@unittest.skipUnless(os.path.exists(DUMP), "falta el volcado real de referencia")
+class TestFullRewrite(unittest.TestCase):
+    """Subida completa estilo CHIRP: zonas enteras en orden; lo no modificado, con el contenido actual."""
+    def setUp(self):
+        for target in ("radiokit.core.service.time.sleep", "radiokit.protocols.baofeng_clone.time.sleep"):
+            p = mock.patch(target)
+            p.start()
+            self.addCleanup(p.stop)
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+
+    def test_full_rewrite_keeps_radio_maintained_data(self):
+        fake = FakeBaofengRadio(open(DUMP, "rb").read(), MAGIC_UVS9X3)
+        svc = RadioService(self.tmp.name, transport_factory=lambda port: fake, log=lambda m: None)
+        _, base, _ = svc.read("FAKE")
+        tgt = base.copy()
+        c = D.decode_channel(tgt.data, 20)
+        c.name = "NUEVO"
+        D.encode_channel(tgt.data, c)
+        fake.mem[0x0800:0x0807] = b"RADIO\xff\xff"        # dato que mantiene la propia radio tras leer
+        res = svc.write("FAKE", base, tgt)
+        self.assertTrue(res.verified)
+        expected = [a for s, e in D.FULL_REWRITE_RANGES for a in range(s, e, 0x10)]
+        self.assertEqual(fake.writes, expected)              # todo, en orden
+        self.assertEqual(bytes(fake.mem[0x0800:0x0807]), b"RADIO\xff\xff")
+        self.assertEqual(D.decode_channel(fake.mem, 20).name, "NUEVO")
+        self.assertEqual(bytes(fake.mem[0x1E80:0x2000]), bytes(base.data[0x1E80:0x2000]))   # calibracion
 
 
 class _NoSleep(unittest.TestCase):
