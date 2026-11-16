@@ -41,7 +41,8 @@ class TestDriver(unittest.TestCase):
         self.assertEqual((ch[22].name, ch[22].tx_freq, ch[22].scan), ("MAR16", None, False))
         self.assertEqual(ch[112].tx_tone, "123.0")
         self.assertTrue(ch[44].empty)
-        self.assertEqual(sum(not c.empty for c in ch.values()), 30)
+        self.assertTrue(ch[0].empty and ch[127].empty)        # restos de fabrica eliminados
+        self.assertEqual(sum(not c.empty for c in ch.values()), 28)
 
     def test_roundtrip_all_real_dumps(self):
         """Decodificar y volver a codificar cada canal no cambia ni un byte."""

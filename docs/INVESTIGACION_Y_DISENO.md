@@ -139,5 +139,5 @@ Principios:
   audio es compatible con los PMR comerciales. (Legalmente un Baofeng no está homologado para PMR446.)
 - Canales **WX1–WX10** (162–163 MHz) son meteo NOAA de EE. UU.: inútiles en España y entran en el escaneo.
 - **146.175 MHz** es la frecuencia SOS-Montaña del Pirineo aragonés, pero necesita subtono **123 Hz** (ver CANALES_ESPANA.md).
-- Canales 0 (136.025) y 127 (470.625) sin nombre — probablemente restos de fábrica.
+- Canales 0 (136.025) y 127 (470.625) sin nombre — restos de fábrica (eliminados en la copia de referencia).
 - La copia de referencia `tests/data/uv-s-plus-reference.bin` contiene el plan de canales de CANALES_ESPANA.md §5.
