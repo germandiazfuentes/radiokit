@@ -13,3 +13,7 @@ continua Baofeng.bat
 __pycache__/
 *.pyc
 *.img
+
+# Material de referencia con copyright (solo local, no se publica)
+docs/*.pdf
+
