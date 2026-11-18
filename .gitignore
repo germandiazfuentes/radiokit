@@ -17,3 +17,6 @@ __pycache__/
 # Material de referencia con copyright (solo local, no se publica)
 docs/*.pdf
 
+# Manuales de fabricantes (copyright): solo local
+*.pdf
+
