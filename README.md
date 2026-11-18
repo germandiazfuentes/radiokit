@@ -37,6 +37,7 @@ Modo demo sin hardware: `python -m radiokit serve --demo tests/data/uv-s-plus-re
 `tests/data/uv-s-plus-reference.bin` es un volcado real de una Baofeng UV-S Plus (tri) con un plan de canales
 útil en España: PMR446 en banda estrecha, SOS-Montaña (146.175 MHz, subtono 123 Hz), Canal 7-7 y canales
 marítimos de solo escucha. Detalles y fuentes en [docs/CANALES_ESPANA.md](docs/CANALES_ESPANA.md).
+Para salir al monte con estas radios: [docs/GUIA_MONTANA.md](docs/GUIA_MONTANA.md).
 
 Línea de comandos: `python -m radiokit ports | drivers | read --port COM6 | show <copia.bin>`.
 
